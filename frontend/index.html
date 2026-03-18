@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reliance Industries · LSTM Forecast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="scanline"></div>
+
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="live-dot" id="liveIndicator"></div>
+      <span class="ticker">RELIANCE.NS</span>
+      <span class="tag tag-green">LSTM · NSE</span>
+      <span class="tag tag-blue">DEEP LEARNING</span>
+    </div>
+    <div class="topbar-center">
+      <span class="nav-item active" onclick="showTab('dashboard')">DASHBOARD</span>
+      <span class="nav-item" onclick="showTab('predict')">PREDICT</span>
+      <span class="nav-item" onclick="showTab('about')">MODEL INFO</span>
+    </div>
+    <div class="topbar-right">
+      <div id="clock" class="clock">--:--:--</div>
+      <div class="clock-sub">IST · NSE</div>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD TAB ── -->
+  <main id="tab-dashboard" class="tab-content active">
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">R² SCORE</div>
+        <div class="metric-val green" id="m-r2">0.8932</div>
+        <div class="metric-sub">test set performance</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">RMSE</div>
+        <div class="metric-val blue" id="m-rmse">31.71 INR</div>
+        <div class="metric-sub">root mean sq. error</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">MAE</div>
+        <div class="metric-val warn" id="m-mae">25.11 INR</div>
+        <div class="metric-sub">mean absolute error</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">MAPE</div>
+        <div class="metric-val red" id="m-mape">22.22%</div>
+        <div class="metric-sub">mean abs. % error</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">ACTUAL VS PREDICTED · TEST SET</span>
+        <div class="legend">
+          <span class="legend-item"><span class="leg-dot blue-dot"></span>Actual</span>
+          <span class="legend-item"><span class="leg-dot green-dot"></span>Predicted</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+
+  </main>
+
+  <!-- ── PREDICT TAB ── -->
+  <main id="tab-predict" class="tab-content" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">PRICE PREDICTION ENGINE</span>
+        <span class="conf-badge" id="modelStatus">● CONNECTING...</span>
+      </div>
+
+      <div class="input-row">
+        <div class="input-group">
+          <label class="input-label">TARGET DATE</label>
+          <input type="date" id="targetDate" class="text-input date-input" value="2025-03-27">
+        </div>
+        <div class="input-group" style="flex:1;min-width:240px">
+          <label class="input-label">BACKEND URL</label>
+          <input type="text" id="apiUrl" class="text-input" placeholder="http://localhost:5000/predict" value="http://localhost:5000/predict">
+        </div>
+        <div class="input-group" style="justify-content:flex-end">
+          <label class="input-label">&nbsp;</label>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" id="predictBtn" onclick="runPrediction()">▶ RUN PREDICTION</button>
+            <button class="btn btn-secondary" onclick="checkHealth()">PING</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="spinner" id="spinner"></div>
+        <span id="statusMsg" class="status-ok">ready · enter date and click run prediction</span>
+      </div>
+    </div>
+
+    <div id="resultSection" style="display:none">
+      <div class="result-grid">
+        <div class="result-main">
+          <div class="result-label">PREDICTED CLOSE PRICE</div>
+          <div class="result-price" id="resultPrice">₹0.00</div>
+          <div class="result-meta" id="resultMeta">–</div>
+        </div>
+        <div class="result-side">
+          <div class="result-label">±2.2% CONFIDENCE BAND</div>
+          <div class="band-row">
+            <span class="band-label">UPPER</span>
+            <span class="band-val green" id="confHigh">–</span>
+          </div>
+          <div class="band-row">
+            <span class="band-label">LOWER</span>
+            <span class="band-val red" id="confLow">–</span>
+          </div>
+        </div>
+        <div class="result-side">
+          <div class="result-label">SESSION INFO</div>
+          <div class="info-row"><span class="info-key">Model</span><span class="info-val">2-layer LSTM</span></div>
+          <div class="info-row"><span class="info-key">Seq len</span><span class="info-val">60 days</span></div>
+          <div class="info-row"><span class="info-key">Features</span><span class="info-val">O·H·L·C·V</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header"><span class="panel-title">PREDICTION HISTORY</span></div>
+      <div id="historyContainer">
+        <div class="empty-state">No predictions yet · run a prediction above</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── ABOUT TAB ── -->
+  <main id="tab-about" class="tab-content" style="display:none">
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">ARCHITECTURE</span></div>
+        <div class="arch-diagram" id="archDiagram"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">TRAINING CONFIG</span></div>
+        <table class="data-table">
+          <tbody>
+            <tr><td class="td-key">Dataset</td><td>Reliance Industries NSE</td></tr>
+            <tr><td class="td-key">Period</td><td>Mar 2021 – Feb 2025</td></tr>
+            <tr><td class="td-key">Frequency</td><td>Daily OHLCV</td></tr>
+            <tr><td class="td-key">Sequence Length</td><td>60 days</td></tr>
+            <tr><td class="td-key">Train / Test Split</td><td>80% / 20%</td></tr>
+            <tr><td class="td-key">Batch Size</td><td>32</td></tr>
+            <tr><td class="td-key">Max Epochs</td><td>100</td></tr>
+            <tr><td class="td-key">Early Stopping</td><td>patience=10</td></tr>
+            <tr><td class="td-key">Optimizer</td><td>Adam</td></tr>
+            <tr><td class="td-key">Loss Function</td><td>Mean Squared Error</td></tr>
+            <tr><td class="td-key">Dropout</td><td>0.2 after each LSTM layer</td></tr>
+            <tr><td class="td-key">Scaler</td><td>MinMaxScaler [0, 1]</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">FEATURE DESCRIPTION</span></div>
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>Description</th><th>Role in Model</th></tr></thead>
+        <tbody>
+          <tr><td class="green">Close</td><td>Daily closing price (INR)</td><td>Primary prediction target + input feature</td></tr>
+          <tr><td>High</td><td>Intraday high price</td><td>Volatility context for sequence</td></tr>
+          <tr><td>Low</td><td>Intraday low price</td><td>Support level context</td></tr>
+          <tr><td>Open</td><td>Session opening price</td><td>Gap-up/down signals</td></tr>
+          <tr><td>Volume</td><td>Total shares traded</td><td>Market activity (weakly correlated)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>

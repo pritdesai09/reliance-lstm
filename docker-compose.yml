@@ -8,8 +8,6 @@ services:
     volumes:
       - ./backend/data:/app/data
       - ./backend/saved_model:/app/saved_model
-    environment:
-      - FLASK_ENV=production
 
   frontend:
     build: ./frontend
